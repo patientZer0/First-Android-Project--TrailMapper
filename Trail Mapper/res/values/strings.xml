@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<resources>
+
+    <string name="app_name">Trail Mapper</string>
+    <string name="address">Current Location:</string>
+    <string name="enable_gps">Enable GPS</string>
+    <string name="enable_gps_dialog">GPS provider not enabled. Would you like to enable it?</string>
+    <string name="latlng">Lat/Long:</string>
+    <string name="unknown">--Unknown--</string>
+    <string name="not_support_gps">GPS provider not supported</string>
+    <string name="not_support_network">Network provider not supported</string>
+    <string name="find_me">Find Me</string>
+
+</resources>
