@@ -19,6 +19,7 @@ public class Launcher extends FragmentActivity {
 
 	
 	private Button mFindMe;
+	private Button mShowMap;
 	
     @SuppressLint("NewApi")
 	@Override
@@ -59,7 +60,12 @@ public class Launcher extends FragmentActivity {
     public void findMyLoc(View view) {
     	Intent intent = new Intent(this, GetLocation.class);
     	startActivity(intent);
-    } 
+    }
+    
+    public void showMap(View view) {
+    	Intent intent = new Intent(this, ShowMap.class);
+    	startActivity(intent);
+    }
     
     /**
      * Dialog to prompt users to enable GPS on the device

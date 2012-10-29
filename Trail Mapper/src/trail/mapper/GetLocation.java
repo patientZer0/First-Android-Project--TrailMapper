@@ -7,7 +7,6 @@ import java.util.Locale;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
-import android.content.Intent;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
@@ -42,8 +41,6 @@ public class GetLocation extends Activity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_get_location);
-        
-        Intent intent = getIntent();
         
      // Restore app state after rotation
         mLatLng = (TextView) findViewById(R.id.latlng);
