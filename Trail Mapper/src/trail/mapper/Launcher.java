@@ -27,8 +27,7 @@ public class Launcher extends FragmentActivity {
         setContentView(R.layout.main);
         
         // Receive location updates
-        mFindMe = (Button) findViewById(R.id.findMe);
-        
+        mFindMe = (Button) findViewById(R.id.findMe);      
     }
     
     @Override
