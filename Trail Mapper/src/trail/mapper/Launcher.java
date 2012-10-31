@@ -58,13 +58,13 @@ public class Launcher extends FragmentActivity {
     }
     
     public void findMyLoc(View view) {
-    	Intent intent = new Intent(this, GetLocation.class);
-    	startActivity(intent);
+    	Intent findMeIntent = new Intent(this, GetLocation.class);
+    	startActivity(findMeIntent);
     }
     
     public void showMap(View view) {
-    	Intent intent = new Intent(this, ShowMap.class);
-    	startActivity(intent);
+    	Intent showMapIntent = new Intent(this, ShowMap.class);
+    	startActivity(showMapIntent);
     }
     
     /**
