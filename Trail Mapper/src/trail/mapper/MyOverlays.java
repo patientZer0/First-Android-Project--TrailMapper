@@ -1,60 +1,101 @@
 package trail.mapper;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import android.app.AlertDialog;
 import android.app.AlertDialog.Builder;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Point;
 import android.graphics.drawable.Drawable;
 import android.widget.Toast;
 
+import com.google.android.maps.GeoPoint;
 import com.google.android.maps.ItemizedOverlay;
+import com.google.android.maps.MapView;
 import com.google.android.maps.OverlayItem;
 
 public class MyOverlays extends ItemizedOverlay<OverlayItem> {
-
-	private static int maxNum = 5;
-	private OverlayItem overlays[] = new OverlayItem[maxNum];
-	private int index = 0;
-	private boolean full = false;
-	private Context context;
-	private OverlayItem previousOverlay;
 	
-	public MyOverlays(Context context, Drawable defaultMarker) {
+	private Context context;
+	private int textSize;
+	
+	private List<OverlayItem> overlays;
+	private List<GeoPoint> geoPointsArray;
+	
+	public MyOverlays(Context context, Drawable defaultMarker, int textSize) {
 		super(boundCenterBottom(defaultMarker));
 		this.context = context;
+		this.textSize = textSize;
+		
+		geoPointsArray = new ArrayList<GeoPoint>();
+		overlays = new ArrayList<OverlayItem>();
+	}
+	
+	@Override
+	public void draw(Canvas canvas, MapView mapView, boolean shadow){
+		super.draw(canvas, mapView, shadow);
+		
+		if (shadow == false) {
+			for (int i = 0; i < overlays.size(); i++) {
+				OverlayItem item = overlays.get(i);
+				GeoPoint gPoint = item.getPoint();
+				
+				Point pxPoint = new Point();
+				
+				mapView.getProjection().toPixels(gPoint, pxPoint);
+				
+				if (i == 0) {
+					Paint blue = new Paint();
+					blue.setColor(Color.BLUE);
+					blue.setStrokeWidth(4);
+					
+					canvas.drawCircle(pxPoint.x, pxPoint.y, 5, blue);
+					
+					Paint pText = new Paint();
+					pText.setTextAlign(Paint.Align.CENTER);
+					pText.setTextSize(textSize);
+					pText.setARGB(150, 0, 0, 0);
+					
+					canvas.drawText(item.getTitle(), pxPoint.x, pxPoint.y+textSize, pText);
+				} else {
+					OverlayItem gpLast = overlays.get(i-1);
+					GeoPoint gPointLast = gpLast.getPoint();
+					Point pxPointLast = new Point();
+					mapView.getProjection().toPixels(gPointLast, pxPointLast);
+					
+					Paint blue = new Paint();
+					blue.setColor(Color.BLUE);
+					blue.setStrokeWidth(4);
+					
+					canvas.drawCircle(pxPoint.x, pxPoint.y, 5, blue);
+					canvas.drawLine(pxPoint.x, pxPoint.y, pxPointLast.x, pxPointLast.y, blue);
+				}
+			}
+		}
 	}
 	
 	@Override
 	protected OverlayItem createItem(int i) {
-		return overlays[i];
+		return overlays.get(i);
 	}
 	
 	@Override
 	public int size() {
-		if (full) {
-			return overlays.length;
-		} else {
-			return index;
-		}
+		return overlays.size();
 	}
 	
 	public void addOverlay(OverlayItem overlay) {
-		if (previousOverlay != null) {
-			if (index < maxNum) {
-				overlays[index] = previousOverlay;
-			} else {
-				index = 0;
-				full = true;
-				overlays[index] = previousOverlay;
-			}
-			index++;
-			populate();
-		}
-		this.previousOverlay = overlay;
+		overlays.add(overlay);
+		populate();
 	}
 	
 	protected boolean onTap(int index) {
-		OverlayItem overlayItem = overlays[index];
+		OverlayItem item = overlays.get(index);
 		Builder builder = new AlertDialog.Builder(context);
 		builder.setMessage("This will end the activity");
 		builder.setCancelable(true);

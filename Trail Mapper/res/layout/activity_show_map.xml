@@ -1,8 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
-<com.google.android.maps.MapView
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    tools:context=".Launcher" >
+  
+    <com.google.android.maps.MapView
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/mapview"
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
     android:clickable="true"
-    android:apiKey="0IDcFGhFXjxkEsOtkiCryHsBCwHJmwaNfpv8DJg" />
+    android:apiKey="0IDcFGhFXjxkEsOtkiCryHsBCwHJmwaNfpv8DJg" 
+    />
+    
+    <TextView android:id="@+id/label_latlng"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="22sp"
+        android:text="@string/latlng" />
+    <TextView android:id="@+id/latlng"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="20sp" />
+
+</RelativeLayout>

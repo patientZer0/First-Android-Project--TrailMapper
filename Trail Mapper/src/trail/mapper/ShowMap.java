@@ -1,22 +1,18 @@
 package trail.mapper;
 
-import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.drawable.Drawable;
-import android.location.Address;
-import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
-import android.os.AsyncTask;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.os.PowerManager;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -25,24 +21,30 @@ import com.google.android.maps.MapActivity;
 import com.google.android.maps.MapController;
 import com.google.android.maps.MapView;
 import com.google.android.maps.MyLocationOverlay;
+import com.google.android.maps.Overlay;
 import com.google.android.maps.OverlayItem;
 
+@SuppressLint("HandlerLeak")
 public class ShowMap extends MapActivity {
 
+	protected PowerManager.WakeLock wakeLock;
+	
+	private Drawable drawable;
 	private TextView mLatLng;
-	private TextView mAddress;
 	private MyLocationOverlay myLocationOverlay;
 	private MapView mapView;
 	private MyOverlays itemizedOverlay;
 	private LocationManager locationManager;
 	private Handler handler;
 	private MapController mapController;
-	private boolean geocoderAvailable;
+	private boolean recording;
 	
-	private static final int UPDATE_ADDRESS = 1;
+	private List<Overlay> mapOverlays;
+	private List<GeoPoint> geoPointsArray;
+	private List<Location> locationPointsArray;
+
     private static final int UPDATE_LATLNG = 2;
-    
-	private static final int TEN_SECONDS = 10000;
+    private static final int TEN_SECONDS = 10000;
 	private static final int TEN_METERS = 10;
 	private static final int TWO_MINUTES = 1000 * 60 * 2;
 	
@@ -52,29 +54,21 @@ public class ShowMap extends MapActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_show_map);
         
-        // Check for Geocoder
-        geocoderAvailable = Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD && Geocoder.isPresent();
+        final PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+        this.wakeLock = pm.newWakeLock(PowerManager.FULL_WAKE_LOCK, "My Tag");
+        this.wakeLock.acquire();
+        
+        geoPointsArray = new ArrayList<GeoPoint>();
+        locationPointsArray = new ArrayList<Location>();
         
         // Get the Map View and configure
         mapView = (MapView) findViewById(R.id.mapview);
         mapView.setBuiltInZoomControls(true);
         mapView.setSatellite(true);
         mapController = mapView.getController();
-        mapController.setZoom(18);
+        mapController.setZoom(20);
         
-     // Handler for updating text fields on the UI like the lat/long and address
-        handler = new Handler() {
-        	public void handleMessage(Message msg) {
-        		switch (msg.what) {
-	        		case UPDATE_ADDRESS:
-	        			mAddress.setText((String) msg.obj);
-	        			break;
-	        		case UPDATE_LATLNG:
-	        			mLatLng.setText((String) msg.obj);
-	        			break;
-        		}
-        	}
-        };
+        mapOverlays = mapView.getOverlays();
         
         // Reference LocationManager object
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
@@ -89,9 +83,26 @@ public class ShowMap extends MapActivity {
         	}
         });
         
-        Drawable drawable = this.getResources().getDrawable(R.drawable.ic_maps_indicator_current_position);
-        itemizedOverlay = new MyOverlays(this, drawable);
+        // Handler for updating text fields on the UI like the lat/long and address
+        handler = new Handler() {
+        	public void handleMessage(Message msg) {
+        		switch (msg.what) {
+	        		case UPDATE_LATLNG:
+	        			mLatLng.setText((String) msg.obj);
+	        			break;
+        		}
+        	}
+        };
+        
+        drawable = this.getResources().getDrawable(R.drawable.ic_maps_indicator_current_position);
+        itemizedOverlay = new MyOverlays(this, drawable, 30);
+        
+        mapOverlays.clear();
+        mapOverlays.add(itemizedOverlay);
+        mapView.invalidate();
+        
         createMarker();
+        
     }
     
 	@Override
@@ -117,6 +128,7 @@ public class ShowMap extends MapActivity {
     protected void onStop() {
     	super.onStop();
     	locationManager.removeUpdates(listener);
+    	this.wakeLock.release();
     }
     
     private void setup() {
@@ -164,23 +176,17 @@ public class ShowMap extends MapActivity {
     	return location;
     }
     
-    private void doReverseGeocoding(Location location) {
-    	(new ReverseGeocodingTask(this)).execute(new Location[] {location});
-    }
-    
     private void updateUILocation(Location location) {
     	// Updates UI with new location
     	Message.obtain(handler,
     			UPDATE_LATLNG,
     			location.getLatitude() + ", " + location.getLongitude()).sendToTarget();
-    	
-    	// Bypass reverse-geocoding only if the Geocoder service is available on the device
-    	if (geocoderAvailable) doReverseGeocoding(location);
     }
     
     private void createMarker() {
     	GeoPoint p = mapView.getMapCenter();
-    	OverlayItem overlayItem = new OverlayItem(p, "", "");
+       
+    	OverlayItem overlayItem = new OverlayItem(p, "Me", "My Loc");
     	itemizedOverlay.addOverlay(overlayItem);
     	if (itemizedOverlay.size() > 0) {
     		mapView.getOverlays().add(itemizedOverlay);
@@ -194,7 +200,14 @@ public class ShowMap extends MapActivity {
     		int lng = (int) (location.getLongitude() * 1E6);
     		GeoPoint point = new GeoPoint(lat, lng);
     		createMarker();
-    		mapController.animateTo(point);
+    		if (recording) {
+    			locationPointsArray.add(location);
+    			geoPointsArray.add(point);
+    		}
+    		
+    		if (recording) {
+    			mapController.animateTo(point);
+    		}
     	}
     	
     	public void onProviderDisabled(String provider) {}
@@ -261,41 +274,5 @@ public class ShowMap extends MapActivity {
     		return provider2 == null;
     	}
     	return provider1.equals(provider2);
-    }
-    
-    // AsyncTask encapsulating the reverse-geocoding API
-    private class ReverseGeocodingTask extends AsyncTask<Location, Void, Void> {
-    	Context mContext;
-    	
-    	public ReverseGeocodingTask(Context context) {
-    		super();
-    		mContext = context;
-    	}
-    	
-    	@Override
-    	protected Void doInBackground(Location... params) {
-    		Geocoder geocoder = new Geocoder(mContext, Locale.getDefault());
-    		
-    	Location loc = params[0];
-    		List<Address> addresses = null;
-    		try {
-    			addresses = geocoder.getFromLocation(loc.getLatitude(), loc.getLongitude(), 1);
-    		} catch (IOException e) {
-    			e.printStackTrace();
-    			// Update address field with the exception.
-    			Message.obtain(handler, UPDATE_ADDRESS, e.toString()).sendToTarget();
-    		}
-    		if (addresses != null && addresses.size() > 0) {
-    			Address address = addresses.get(0);
-    			// Format the first line of address (if available), city, and country name
-    			String addressText = String.format("%s, %s, %s",
-    					address.getMaxAddressLineIndex() > 0 ? address.getAddressLine(0) : "",
-    					address.getLocality(),
-    					address.getCountryName());
-    			// Update address field on UI
-    			Message.obtain(handler, UPDATE_ADDRESS, addressText).sendToTarget();
-    		}
-    		return null;
-    	}
     }
 }

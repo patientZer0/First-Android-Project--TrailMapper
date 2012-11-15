@@ -17,18 +17,16 @@ import android.widget.Button;
 
 public class Launcher extends FragmentActivity {
 
-	
-	private Button mFindMe;
-	private Button mShowMap;
-	
-    @SuppressLint("NewApi")
+	private Button showMap;
+
+	@SuppressLint("NewApi")
 	@Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
         
         // Receive location updates
-        mFindMe = (Button) findViewById(R.id.findMe);      
+        showMap = (Button) findViewById(R.id.mapper);      
     }
     
     @Override
@@ -55,11 +53,6 @@ public class Launcher extends FragmentActivity {
     private void enableLocationSettings() {
     	Intent settingsIntent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
     	startActivity(settingsIntent);
-    }
-    
-    public void findMyLoc(View view) {
-    	Intent findMeIntent = new Intent(this, GetLocation.class);
-    	startActivity(findMeIntent);
     }
     
     public void showMap(View view) {
