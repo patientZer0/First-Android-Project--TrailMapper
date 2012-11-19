@@ -37,6 +37,7 @@ public class ShowMap extends MapActivity {
 	private LocationManager locationManager;
 	private Handler handler;
 	private MapController mapController;
+	
 	private boolean recording;
 	
 	private List<Overlay> mapOverlays;
@@ -54,12 +55,10 @@ public class ShowMap extends MapActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_show_map);
         
-        final PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
-        this.wakeLock = pm.newWakeLock(PowerManager.FULL_WAKE_LOCK, "My Tag");
-        this.wakeLock.acquire();
-        
         geoPointsArray = new ArrayList<GeoPoint>();
         locationPointsArray = new ArrayList<Location>();
+  
+        mLatLng = (TextView) findViewById(R.id.latlng);
         
         // Get the Map View and configure
         mapView = (MapView) findViewById(R.id.mapview);
@@ -67,21 +66,11 @@ public class ShowMap extends MapActivity {
         mapView.setSatellite(true);
         mapController = mapView.getController();
         mapController.setZoom(20);
-        
+
         mapOverlays = mapView.getOverlays();
         
         // Reference LocationManager object
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-        
-        // Create an overlay that shows current location
-        myLocationOverlay = new MyLocationOverlay(this, mapView);
-        mapView.getOverlays().add(myLocationOverlay);
-        
-        myLocationOverlay.runOnFirstFix(new Runnable() {
-        	public void run() {
-        		mapView.getController().animateTo(myLocationOverlay.getMyLocation());
-        	}
-        });
         
         // Handler for updating text fields on the UI like the lat/long and address
         handler = new Handler() {
@@ -94,15 +83,16 @@ public class ShowMap extends MapActivity {
         	}
         };
         
+        // Create an overlay that shows current location
+        myLocationOverlay = new MyLocationOverlay(this, mapView);
+        mapView.getOverlays().add(myLocationOverlay);
+        
         drawable = this.getResources().getDrawable(R.drawable.ic_maps_indicator_current_position);
         itemizedOverlay = new MyOverlays(this, drawable, 30);
         
         mapOverlays.clear();
-        mapOverlays.add(itemizedOverlay);
+        mapOverlays.add(myLocationOverlay);
         mapView.invalidate();
-        
-        createMarker();
-        
     }
     
 	@Override
@@ -110,49 +100,57 @@ public class ShowMap extends MapActivity {
 		return false;
 	}
 
+	@Override
 	protected void onStart() {
 		super.onStart();
 	}
 	
+	@Override
     protected void onResume() {
     	super.onResume();
     	setup();
     }
     
+	@Override
     protected void onPause() {
     	super.onPause();
+    	locationManager.removeUpdates(listener);
     	myLocationOverlay.disableMyLocation();
     	myLocationOverlay.disableCompass();
     }
 
+	@Override
+	public void onSaveInstanceState(Bundle savedInstanceState) {
+		super.onSaveInstanceState(savedInstanceState);
+		
+		for (int i = 0; i < geoPointsArray.size(); i++) {
+			
+			//savedInstanceState.putIntegerArrayList(null, geoPointsArray.get(i));
+		}
+	}
+	
+	@Override
     protected void onStop() {
     	super.onStop();
     	locationManager.removeUpdates(listener);
-    	this.wakeLock.release();
     }
     
     private void setup() {
     	Location gpsLocation = null;
-    	Location networkLocation = null;
+    	
     	locationManager.removeUpdates(listener);
     	myLocationOverlay.enableMyLocation();
     	myLocationOverlay.enableCompass();
     	
+    	mLatLng.setText(R.string.unknown);
+    	
     	// Request Update from GPS and Network Providers
     	gpsLocation = requestUpdatesFromProvider(
     			LocationManager.GPS_PROVIDER, R.string.not_support_gps);
-    	networkLocation = requestUpdatesFromProvider(
-    			LocationManager.NETWORK_PROVIDER, R.string.not_support_network);
     	
-    	// Compare location and return more accurate location
-    	if (gpsLocation != null && networkLocation != null) {
-    		getBetterLocation(gpsLocation, networkLocation);
-    	} else if (gpsLocation != null) {
-    		updateUILocation(gpsLocation);
-    	} else if (networkLocation != null) {
-    		updateUILocation(networkLocation);
-    	}
+    	updateUILocation(gpsLocation);
     }
+    
     
     /**
      * Method to register location updates with a desired location provider.  If the requested
@@ -183,30 +181,27 @@ public class ShowMap extends MapActivity {
     			location.getLatitude() + ", " + location.getLongitude()).sendToTarget();
     }
     
-    private void createMarker() {
-    	GeoPoint p = mapView.getMapCenter();
-       
-    	OverlayItem overlayItem = new OverlayItem(p, "Me", "My Loc");
-    	itemizedOverlay.addOverlay(overlayItem);
-    	if (itemizedOverlay.size() > 0) {
-    		mapView.getOverlays().add(itemizedOverlay);
-    	}
-    }
-    
     private final LocationListener listener = new LocationListener() {
     	
     	public void onLocationChanged(Location location) {
     		int lat = (int) (location.getLatitude() * 1E6);
     		int lng = (int) (location.getLongitude() * 1E6);
     		GeoPoint point = new GeoPoint(lat, lng);
-    		createMarker();
-    		if (recording) {
-    			locationPointsArray.add(location);
-    			geoPointsArray.add(point);
-    		}
+    	
+    		mapController.animateTo(point);
     		
-    		if (recording) {
-    			mapController.animateTo(point);
+    		OverlayItem overlayItem = new OverlayItem(point, "", "");
+    		
+    		itemizedOverlay.addOverlay(overlayItem);
+    		
+    		//updateUILocation(location);	
+    		if (itemizedOverlay.size() > 0) {
+    			mapView.getOverlays().add(myLocationOverlay);
+    			mapView.getOverlays().add(itemizedOverlay);
+	    		if (recording) {			
+	    			locationPointsArray.add(location);
+	    			geoPointsArray.add(point);
+	    		}
     		}
     	}
     	
