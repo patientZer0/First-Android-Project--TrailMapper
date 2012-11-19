@@ -11,11 +11,15 @@
     <uses-permission android:name="android.permission.INTERNET" />
 	<uses-permission android:name="android.permission.WAKE_LOCK" />
 	
-    <application android:label="@string/app_name" android:theme="@android:style/Theme.NoTitleBar" >
+    <application 
+        android:label="@string/app_name" 
+        android:theme="@android:style/Theme.NoTitleBar" 
+        android:allowBackup="true" >
         <uses-library android:name="com.google.android.maps" />
         <activity
             android:name=".Launcher"
-            android:label="@string/app_name" >
+            android:label="@string/app_name"
+            android:screenOrientation="portrait" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

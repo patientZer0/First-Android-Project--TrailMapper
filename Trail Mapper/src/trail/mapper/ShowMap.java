@@ -118,16 +118,6 @@ public class ShowMap extends MapActivity {
     	myLocationOverlay.disableMyLocation();
     	myLocationOverlay.disableCompass();
     }
-
-	@Override
-	public void onSaveInstanceState(Bundle savedInstanceState) {
-		super.onSaveInstanceState(savedInstanceState);
-		
-		for (int i = 0; i < geoPointsArray.size(); i++) {
-			
-			//savedInstanceState.putIntegerArrayList(null, geoPointsArray.get(i));
-		}
-	}
 	
 	@Override
     protected void onStop() {
@@ -137,18 +127,31 @@ public class ShowMap extends MapActivity {
     
     private void setup() {
     	Location gpsLocation = null;
+    	Location networkLocation = null;
     	
     	locationManager.removeUpdates(listener);
+    	
     	myLocationOverlay.enableMyLocation();
     	myLocationOverlay.enableCompass();
     	
     	mLatLng.setText(R.string.unknown);
     	
-    	// Request Update from GPS and Network Providers
-    	gpsLocation = requestUpdatesFromProvider(
-    			LocationManager.GPS_PROVIDER, R.string.not_support_gps);
+    	// Request Update from Providers
+       	gpsLocation = requestUpdatesFromProvider(LocationManager.GPS_PROVIDER, R.string.not_support_gps);
+    	networkLocation = requestUpdatesFromProvider(LocationManager.NETWORK_PROVIDER, R.string.not_support_network);
     	
-    	updateUILocation(gpsLocation);
+    	if (gpsLocation != null && networkLocation != null) {
+    		getBetterLocation(gpsLocation, networkLocation);
+    		if (getBetterLocation(gpsLocation, networkLocation) == gpsLocation) {
+    			updateUILocation(gpsLocation);
+    		} else if (getBetterLocation(gpsLocation, networkLocation) == networkLocation){
+    			updateUILocation(networkLocation);
+    		}
+    	} else if (gpsLocation != null) {
+    		updateUILocation(gpsLocation);
+    	} else if (networkLocation != null) {
+    		updateUILocation(networkLocation);
+    	}
     }
     
     
@@ -193,11 +196,11 @@ public class ShowMap extends MapActivity {
     		OverlayItem overlayItem = new OverlayItem(point, "", "");
     		
     		itemizedOverlay.addOverlay(overlayItem);
-    		
-    		//updateUILocation(location);	
+	
     		if (itemizedOverlay.size() > 0) {
     			mapView.getOverlays().add(myLocationOverlay);
     			mapView.getOverlays().add(itemizedOverlay);
+    			
 	    		if (recording) {			
 	    			locationPointsArray.add(location);
 	    			geoPointsArray.add(point);
