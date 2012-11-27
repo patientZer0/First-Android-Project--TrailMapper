@@ -1,10 +1,14 @@
 package trail.mapper;
 
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 
 import android.annotation.SuppressLint;
+import android.app.AlertDialog;
+import android.app.Dialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.graphics.drawable.Drawable;
 import android.location.Location;
 import android.location.LocationListener;
@@ -12,7 +16,7 @@ import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
-import android.os.PowerManager;
+import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -26,11 +30,12 @@ import com.google.android.maps.OverlayItem;
 
 @SuppressLint("HandlerLeak")
 public class ShowMap extends MapActivity {
-
-	protected PowerManager.WakeLock wakeLock;
 	
 	private Drawable drawable;
 	private TextView mLatLng;
+	private TextView mDistance;
+	private TextView mElevation;
+	private TextView mTimer;
 	private MyLocationOverlay myLocationOverlay;
 	private MapView mapView;
 	private MyOverlays itemizedOverlay;
@@ -44,7 +49,11 @@ public class ShowMap extends MapActivity {
 	private List<GeoPoint> geoPointsArray;
 	private List<Location> locationPointsArray;
 
-    private static final int UPDATE_LATLNG = 2;
+    private static final int UPDATE_LATLNG = 1;
+    private static final int UPDATE_DIST = 2;
+    private static final int UPDATE_ELE = 3;
+    private static final int UPDATE_TIME = 4;
+    private static final int TRAIL_DIALOG = 5;
     private static final int TEN_SECONDS = 10000;
 	private static final int TEN_METERS = 10;
 	private static final int TWO_MINUTES = 1000 * 60 * 2;
@@ -59,6 +68,9 @@ public class ShowMap extends MapActivity {
         locationPointsArray = new ArrayList<Location>();
   
         mLatLng = (TextView) findViewById(R.id.latlng);
+        mDistance = (TextView) findViewById(R.id.distance);
+        mElevation = (TextView) findViewById(R.id.elevation);
+        mTimer = (TextView) findViewById(R.id.timer);
         
         // Get the Map View and configure
         mapView = (MapView) findViewById(R.id.mapview);
@@ -72,19 +84,28 @@ public class ShowMap extends MapActivity {
         // Reference LocationManager object
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         
-        // Handler for updating text fields on the UI like the lat/long and address
+        // Handler for updating text fields on the UI
         handler = new Handler() {
         	public void handleMessage(Message msg) {
         		switch (msg.what) {
 	        		case UPDATE_LATLNG:
 	        			mLatLng.setText((String) msg.obj);
 	        			break;
+	        		case UPDATE_DIST:
+	        			mDistance.setText((String) msg.obj);
+	        			break;
+	        		case UPDATE_ELE:
+	        			mElevation.setText((String) msg.obj);
+	        			break;
+	        		case UPDATE_TIME:
+	        			mTimer.setText((String) msg.obj);
+	        			break;
         		}
         	}
         };
         
         // Create an overlay that shows current location
-        myLocationOverlay = new MyLocationOverlay(this, mapView);
+        myLocationOverlay = new FixedMyLocation(this, mapView);
         mapView.getOverlays().add(myLocationOverlay);
         
         drawable = this.getResources().getDrawable(R.drawable.ic_maps_indicator_current_position);
@@ -135,6 +156,9 @@ public class ShowMap extends MapActivity {
     	myLocationOverlay.enableCompass();
     	
     	mLatLng.setText(R.string.unknown);
+    	mDistance.setText(R.string.unknown);
+    	mElevation.setText(R.string.unknown);
+    	mTimer.setText(R.string.unknown);
     	
     	// Request Update from Providers
        	gpsLocation = requestUpdatesFromProvider(LocationManager.GPS_PROVIDER, R.string.not_support_gps);
@@ -154,9 +178,57 @@ public class ShowMap extends MapActivity {
     	}
     }
     
+    /**
+     * Method for when user presses the pause button. Creates a dialog to ask the user what they
+     * would like to do. Either Save/Quit/or Resume. 
+     */
+    public void onClick(View v) {
+    	extracted();
+    }
+
+	private void extracted() {
+		showDialog(TRAIL_DIALOG);
+	}
+    
+    protected Dialog onCreateDialog(int id) {
+    	AlertDialog.Builder builder = new AlertDialog.Builder(this);
+    	switch (id) {
+	    	case TRAIL_DIALOG:
+	    		builder.setTitle(R.string.question);
+		    	builder.setPositiveButton(R.string.saver, new DialogInterface.OnClickListener() {
+					
+					public void onClick(DialogInterface dialog, int which) {
+						Toast.makeText(getApplicationContext(),
+                                "I'm sorry I can't do that yet.", Toast.LENGTH_SHORT)
+                                .show();
+					}
+				});
+		    	
+		    	builder.setNeutralButton(R.string.resume, new DialogInterface.OnClickListener() {
+					
+					public void onClick(DialogInterface dialog, int which) {
+						Toast.makeText(getApplicationContext(),
+                                "Fun time resumed!", Toast.LENGTH_SHORT)
+                                .show();
+						dialog.dismiss();
+					}
+				});
+		    	
+		    	builder.setNegativeButton(R.string.quit, new DialogInterface.OnClickListener() {
+					
+					public void onClick(DialogInterface dialog, int which) {
+						Toast.makeText(getApplicationContext(),
+                                "Quitter!", Toast.LENGTH_SHORT)
+                                .show();
+						ShowMap.this.finish();
+					}
+				});
+    	}
+    	return builder.create();
+    }
     
     /**
-     * Method to register location updates with a desired location provider.  If the requested
+     * Method to register location updates with a desired location provider. If the requested
      * provider is not available on the device, the app displays a Toast with a message referenced
      * by a resource id.
      *
@@ -179,9 +251,12 @@ public class ShowMap extends MapActivity {
     
     private void updateUILocation(Location location) {
     	// Updates UI with new location
+    	DecimalFormat locFormatter = new DecimalFormat("00.000000");
+    	
     	Message.obtain(handler,
     			UPDATE_LATLNG,
-    			location.getLatitude() + ", " + location.getLongitude()).sendToTarget();
+    			locFormatter.format(location.getLatitude()) + ", " +
+    			locFormatter.format(location.getLongitude())).sendToTarget();
     }
     
     private final LocationListener listener = new LocationListener() {

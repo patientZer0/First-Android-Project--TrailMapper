@@ -1,6 +1,5 @@
 package trail.mapper;
 
-
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -18,6 +17,7 @@ import android.widget.Button;
 public class Launcher extends FragmentActivity {
 
 	private Button showMap;
+	private Button loadSaved;
 
 	@SuppressLint("NewApi")
 	@Override
@@ -25,13 +25,8 @@ public class Launcher extends FragmentActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
         
-        // Receive location updates
-        showMap = (Button) findViewById(R.id.mapper);      
-    }
-    
-    @Override
-    protected void onResume() {
-    	super.onResume();
+        showMap = (Button) findViewById(R.id.mapper);
+        loadSaved = (Button) findViewById(R.id.loader);
     }
     
     @Override
@@ -49,15 +44,27 @@ public class Launcher extends FragmentActivity {
     	}
     }
     
+    @Override
+    protected void onResume() {
+    	super.onResume();
+    }
+    
     // Method to launch Settings
     private void enableLocationSettings() {
     	Intent settingsIntent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
     	startActivity(settingsIntent);
     }
     
+    // Method to start map
     public void showMap(View view) {
     	Intent showMapIntent = new Intent(this, ShowMap.class);
     	startActivity(showMapIntent);
+    }
+    
+    // Method to load saved trails
+    public void loadSaved(View view) {
+    	Intent loadSavedIntent = new Intent(this, LoadSavedTrails.class);
+    	startActivity(loadSavedIntent);
     }
     
     /**
