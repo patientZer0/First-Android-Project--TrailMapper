@@ -27,7 +27,7 @@
 	<string name="latlng">Lat/Long:</string>
 	<string name="distance">Distance Traveled:</string>
 	<string name="timer">Time Elapsed:</string>
-	<string name="elevation">Current Elevation:</string>
+	<string name="elevation">Current Altitude:</string>
     <string name="unknown">--Unknown--</string>
 	
 </resources>

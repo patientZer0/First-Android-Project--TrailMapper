@@ -32,22 +32,24 @@ import com.google.android.maps.OverlayItem;
 public class ShowMap extends MapActivity {
 	
 	private Drawable drawable;
-	private TextView mLatLng;
+	private Handler handler;
+	private LocationManager locationManager;
+	private MapController mapController;
+	private MapView mapView;
+	private MyLocationOverlay myLocationOverlay;
+	private MyOverlays itemizedOverlay;
+	private Output outDistance;
+	private Output outElevation;
 	private TextView mDistance;
 	private TextView mElevation;
+	private TextView mLatLng;
 	private TextView mTimer;
-	private MyLocationOverlay myLocationOverlay;
-	private MapView mapView;
-	private MyOverlays itemizedOverlay;
-	private LocationManager locationManager;
-	private Handler handler;
-	private MapController mapController;
 	
 	private boolean recording;
 	
 	private List<Overlay> mapOverlays;
 	private List<GeoPoint> geoPointsArray;
-	private List<Location> locationPointsArray;
+	private ArrayList<Location> locationPointsArray;
 
     private static final int UPDATE_LATLNG = 1;
     private static final int UPDATE_DIST = 2;
@@ -67,6 +69,9 @@ public class ShowMap extends MapActivity {
         geoPointsArray = new ArrayList<GeoPoint>();
         locationPointsArray = new ArrayList<Location>();
   
+        outDistance = new Output();
+        outElevation = new Output();
+        
         mLatLng = (TextView) findViewById(R.id.latlng);
         mDistance = (TextView) findViewById(R.id.distance);
         mElevation = (TextView) findViewById(R.id.elevation);
@@ -250,13 +255,27 @@ public class ShowMap extends MapActivity {
     }
     
     private void updateUILocation(Location location) {
-    	// Updates UI with new location
-    	DecimalFormat locFormatter = new DecimalFormat("00.000000");
     	
+    	DecimalFormat locFormatter = new DecimalFormat("00.000000");
+    	    	
+    	String elevation = Integer.toString((int)(location.getAltitude() * 3.28084));
+    	String distance = outDistance.distanceInFeet(locationPointsArray).toString();
+    	
+    	// Updates UI with new location
     	Message.obtain(handler,
     			UPDATE_LATLNG,
     			locFormatter.format(location.getLatitude()) + ", " +
     			locFormatter.format(location.getLongitude())).sendToTarget();
+    	
+    	// Updates UI with total distance traveled
+    	Message.obtain(handler,
+    			UPDATE_DIST,
+    			distance + " " + "ft.").sendToTarget();
+    	
+    	// Updates UI with current elevation
+    	Message.obtain(handler,
+    			UPDATE_ELE,
+    			elevation + " " + "ft.").sendToTarget();
     }
     
     private final LocationListener listener = new LocationListener() {
@@ -265,7 +284,11 @@ public class ShowMap extends MapActivity {
     		int lat = (int) (location.getLatitude() * 1E6);
     		int lng = (int) (location.getLongitude() * 1E6);
     		GeoPoint point = new GeoPoint(lat, lng);
-    	
+    		
+    		locationPointsArray.add(location);
+
+    		geoPointsArray.add(point);
+    		
     		mapController.animateTo(point);
     		
     		OverlayItem overlayItem = new OverlayItem(point, "", "");
@@ -275,11 +298,6 @@ public class ShowMap extends MapActivity {
     		if (itemizedOverlay.size() > 0) {
     			mapView.getOverlays().add(myLocationOverlay);
     			mapView.getOverlays().add(itemizedOverlay);
-    			
-	    		if (recording) {			
-	    			locationPointsArray.add(location);
-	    			geoPointsArray.add(point);
-	    		}
     		}
     	}
     	
