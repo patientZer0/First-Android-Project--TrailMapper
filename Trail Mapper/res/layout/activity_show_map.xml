@@ -23,7 +23,7 @@
 	    android:layout_height="0dip"
 	    android:layout_weight="2"
 	    android:apiKey="0IDcFGhFXjxkEsOtkiCryHsBCwHJmwaNfpv8DJg"
-	    android:clickable="false" >
+	    android:clickable="true" >
 	</com.google.android.maps.MapView>
 
 	<TableLayout
@@ -84,11 +84,11 @@
 				android:textSize="14sp" />
 
 			<TextView
-				android:id="@+id/label_timer"
+				android:id="@+id/label_speed"
 				android:layout_width="match_parent"
 				android:layout_height="wrap_content"
 				android:layout_column="2"
-				android:text="@string/timer"
+				android:text="@string/speed"
 				android:textSize="14sp" />
 		</TableRow>
 		
@@ -102,7 +102,7 @@
 				android:textColor="#33aaff" />
 		
 			<TextView 
-				android:id="@+id/timer"
+				android:id="@+id/speed"
 				android:layout_width="match_parent"
 				android:layout_height="wrap_content"
 				android:layout_column="2"

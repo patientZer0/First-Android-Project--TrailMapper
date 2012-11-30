@@ -26,7 +26,7 @@
 	<!-- display strings -->
 	<string name="latlng">Lat/Long:</string>
 	<string name="distance">Distance Traveled:</string>
-	<string name="timer">Time Elapsed:</string>
+	<string name="speed">Current Pace:</string>
 	<string name="elevation">Current Altitude:</string>
     <string name="unknown">--Unknown--</string>
 	

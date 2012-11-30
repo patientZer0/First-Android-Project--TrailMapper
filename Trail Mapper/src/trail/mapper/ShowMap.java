@@ -9,7 +9,6 @@ import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
-import android.graphics.drawable.Drawable;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -31,21 +30,17 @@ import com.google.android.maps.OverlayItem;
 @SuppressLint("HandlerLeak")
 public class ShowMap extends MapActivity {
 	
-	private Drawable drawable;
 	private Handler handler;
 	private LocationManager locationManager;
 	private MapController mapController;
 	private MapView mapView;
 	private MyLocationOverlay myLocationOverlay;
-	private MyOverlays itemizedOverlay;
+	private MyOverlays myOverlay;
 	private Output outDistance;
-	private Output outElevation;
 	private TextView mDistance;
 	private TextView mElevation;
 	private TextView mLatLng;
 	private TextView mTimer;
-	
-	private boolean recording;
 	
 	private List<Overlay> mapOverlays;
 	private List<GeoPoint> geoPointsArray;
@@ -54,8 +49,7 @@ public class ShowMap extends MapActivity {
     private static final int UPDATE_LATLNG = 1;
     private static final int UPDATE_DIST = 2;
     private static final int UPDATE_ELE = 3;
-    private static final int UPDATE_TIME = 4;
-    private static final int TRAIL_DIALOG = 5;
+    private static final int UPDATE_SPEED = 4;
     private static final int TEN_SECONDS = 10000;
 	private static final int TEN_METERS = 10;
 	private static final int TWO_MINUTES = 1000 * 60 * 2;
@@ -70,12 +64,11 @@ public class ShowMap extends MapActivity {
         locationPointsArray = new ArrayList<Location>();
   
         outDistance = new Output();
-        outElevation = new Output();
         
         mLatLng = (TextView) findViewById(R.id.latlng);
         mDistance = (TextView) findViewById(R.id.distance);
         mElevation = (TextView) findViewById(R.id.elevation);
-        mTimer = (TextView) findViewById(R.id.timer);
+        mTimer = (TextView) findViewById(R.id.speed);
         
         // Get the Map View and configure
         mapView = (MapView) findViewById(R.id.mapview);
@@ -102,7 +95,7 @@ public class ShowMap extends MapActivity {
 	        		case UPDATE_ELE:
 	        			mElevation.setText((String) msg.obj);
 	        			break;
-	        		case UPDATE_TIME:
+	        		case UPDATE_SPEED:
 	        			mTimer.setText((String) msg.obj);
 	        			break;
         		}
@@ -113,8 +106,7 @@ public class ShowMap extends MapActivity {
         myLocationOverlay = new FixedMyLocation(this, mapView);
         mapView.getOverlays().add(myLocationOverlay);
         
-        drawable = this.getResources().getDrawable(R.drawable.ic_maps_indicator_current_position);
-        itemizedOverlay = new MyOverlays(this, drawable, 30);
+        myOverlay = new MyOverlays(this);
         
         mapOverlays.clear();
         mapOverlays.add(myLocationOverlay);
@@ -151,6 +143,7 @@ public class ShowMap extends MapActivity {
     	locationManager.removeUpdates(listener);
     }
     
+	// Initial app setup
     private void setup() {
     	Location gpsLocation = null;
     	Location networkLocation = null;
@@ -160,45 +153,47 @@ public class ShowMap extends MapActivity {
     	myLocationOverlay.enableMyLocation();
     	myLocationOverlay.enableCompass();
     	
+    	// Set UI texts to unknown if no current information is available
     	mLatLng.setText(R.string.unknown);
     	mDistance.setText(R.string.unknown);
     	mElevation.setText(R.string.unknown);
     	mTimer.setText(R.string.unknown);
     	
     	// Request Update from Providers
-       	gpsLocation = requestUpdatesFromProvider(LocationManager.GPS_PROVIDER, R.string.not_support_gps);
-    	networkLocation = requestUpdatesFromProvider(LocationManager.NETWORK_PROVIDER, R.string.not_support_network);
+       	gpsLocation = requestUpdatesFromProvider(LocationManager.GPS_PROVIDER, 
+       			R.string.not_support_gps);
+    	networkLocation = requestUpdatesFromProvider(LocationManager.NETWORK_PROVIDER, 
+    			R.string.not_support_network);
     	
     	if (gpsLocation != null && networkLocation != null) {
     		getBetterLocation(gpsLocation, networkLocation);
     		if (getBetterLocation(gpsLocation, networkLocation) == gpsLocation) {
+    			locationPointsArray.add(gpsLocation);
     			updateUILocation(gpsLocation);
     		} else if (getBetterLocation(gpsLocation, networkLocation) == networkLocation){
+    			locationPointsArray.add(networkLocation);
     			updateUILocation(networkLocation);
     		}
     	} else if (gpsLocation != null) {
+    		locationPointsArray.add(gpsLocation);
     		updateUILocation(gpsLocation);
     	} else if (networkLocation != null) {
+    		locationPointsArray.add(networkLocation);
     		updateUILocation(networkLocation);
     	}
     }
     
-    /**
-     * Method for when user presses the pause button. Creates a dialog to ask the user what they
-     * would like to do. Either Save/Quit/or Resume. 
-     */
     public void onClick(View v) {
-    	extracted();
-    }
-
-	private void extracted() {
-		showDialog(TRAIL_DIALOG);
+		onCreateDialog().show();
 	}
     
-    protected Dialog onCreateDialog(int id) {
+    /**
+     * Method for when user presses the "pause" button. Creates a dialog to ask the user what they
+     * would like to do. Either Save/Quit/or Resume. 
+     */   
+    protected Dialog onCreateDialog() {
     	AlertDialog.Builder builder = new AlertDialog.Builder(this);
-    	switch (id) {
-	    	case TRAIL_DIALOG:
+    	
 	    		builder.setTitle(R.string.question);
 		    	builder.setPositiveButton(R.string.saver, new DialogInterface.OnClickListener() {
 					
@@ -228,7 +223,7 @@ public class ShowMap extends MapActivity {
 						ShowMap.this.finish();
 					}
 				});
-    	}
+
     	return builder.create();
     }
     
@@ -256,10 +251,16 @@ public class ShowMap extends MapActivity {
     
     private void updateUILocation(Location location) {
     	
-    	DecimalFormat locFormatter = new DecimalFormat("00.000000");
-    	    	
+    	DecimalFormat locFormatter = new DecimalFormat("00.######");
+    	DecimalFormat distFormatter = new DecimalFormat("0"); 
+    	DecimalFormat speedFormatter = new DecimalFormat("0.##");
+    	
+    	double distDub = outDistance.distanceInFeet(locationPointsArray);
+    	int distInt = (int)distDub;
+    	
     	String elevation = Integer.toString((int)(location.getAltitude() * 3.28084));
-    	String distance = outDistance.distanceInFeet(locationPointsArray).toString();
+    	String distance = distFormatter.format(distInt);
+    	float speed = location.getSpeed() * (float)2.23694;
     	
     	// Updates UI with new location
     	Message.obtain(handler,
@@ -270,12 +271,17 @@ public class ShowMap extends MapActivity {
     	// Updates UI with total distance traveled
     	Message.obtain(handler,
     			UPDATE_DIST,
-    			distance + " " + "ft.").sendToTarget();
+    			distance + " " + "ft").sendToTarget();
     	
     	// Updates UI with current elevation
     	Message.obtain(handler,
     			UPDATE_ELE,
-    			elevation + " " + "ft.").sendToTarget();
+    			elevation + " " + "ft").sendToTarget();
+    	
+    	// Updates UI with current speed
+    	Message.obtain(handler,
+    			UPDATE_SPEED,
+    			speedFormatter.format(speed) + " " + "mph").sendToTarget();
     }
     
     private final LocationListener listener = new LocationListener() {
@@ -293,12 +299,20 @@ public class ShowMap extends MapActivity {
     		
     		OverlayItem overlayItem = new OverlayItem(point, "", "");
     		
-    		itemizedOverlay.addOverlay(overlayItem);
-	
-    		if (itemizedOverlay.size() > 0) {
+    		myOverlay.addOverlay(overlayItem);
+    		
+    		// Create the path
+    		if (myOverlay.size() > 0) {
     			mapView.getOverlays().add(myLocationOverlay);
-    			mapView.getOverlays().add(itemizedOverlay);
+    			mapView.getOverlays().add(myOverlay);
     		}
+    		
+    		// Update the UI with the new location information
+    		updateUILocation(location);
+    		
+    		// This toast is for debug purposes only, comment out or delete when final app deploys
+    		Toast.makeText(getApplicationContext(), "The Location Points Array is this big: " +
+        			locationPointsArray.size(), Toast.LENGTH_SHORT).show();
     	}
     	
     	public void onProviderDisabled(String provider) {}

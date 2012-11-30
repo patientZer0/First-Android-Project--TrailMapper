@@ -32,7 +32,6 @@ public class Output {
     return min;
   }
 	
-	
 //returns highest elevation
   public Double maxElevation(ArrayList<Location> l) {
     Double max = l.get(0).getAltitude();
