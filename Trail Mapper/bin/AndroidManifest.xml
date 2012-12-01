@@ -1,24 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="trail.mapper"
     android:versionCode="1"
     android:versionName="1.0" >
 
     <uses-sdk
-        android:minSdkVersion="15" 
+        android:minSdkVersion="15"
         android:targetSdkVersion="17" />
 
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.INTERNET" />
-	<uses-permission android:name="android.permission.WAKE_LOCK" />
-	
-    <application 
-        android:label="@string/app_name"
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+    <application
+        android:allowBackup="true"
         android:icon="@drawable/tm_icon"
-        android:theme="@android:style/Theme.NoTitleBar" 
-        android:allowBackup="true" >
+        android:label="@string/app_name"
+        android:theme="@android:style/Theme.NoTitleBar" >
         <uses-library android:name="com.google.android.maps" />
+
         <activity
-            android:name=".Launcher"
+            android:name="trail.mapper.Launcher"
             android:label="@string/app_name"
             android:screenOrientation="portrait" >
             <intent-filter>
@@ -28,12 +30,17 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".ShowMap"
+            android:name="trail.mapper.ShowMap"
             android:label="@string/title_activity_show_map"
             android:screenOrientation="portrait" >
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="trail.mapper.Launcher" />
+        </activity>
+        <activity
+            android:name="trail.mapper.SaveTrail"
+            android:label="@string/title_activity_save_trail"
+            android:theme="@android:style/Theme.Holo.Dialog" >
         </activity>
     </application>
 

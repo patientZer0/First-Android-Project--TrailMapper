@@ -9,13 +9,16 @@ import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -30,6 +33,7 @@ import com.google.android.maps.OverlayItem;
 @SuppressLint("HandlerLeak")
 public class ShowMap extends MapActivity {
 	
+	private Bundle extras;
 	private Handler handler;
 	private LocationManager locationManager;
 	private MapController mapController;
@@ -40,11 +44,13 @@ public class ShowMap extends MapActivity {
 	private TextView mDistance;
 	private TextView mElevation;
 	private TextView mLatLng;
-	private TextView mTimer;
+	private TextView mSpeed;
 	
 	private List<Overlay> mapOverlays;
 	private List<GeoPoint> geoPointsArray;
 	private ArrayList<Location> locationPointsArray;
+	private ArrayList<Integer> saveArrayLng;
+	private ArrayList<Integer> saveArrayLat;
 
     private static final int UPDATE_LATLNG = 1;
     private static final int UPDATE_DIST = 2;
@@ -60,6 +66,10 @@ public class ShowMap extends MapActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_show_map);
         
+        extras = new Bundle();
+        
+        saveArrayLng = new ArrayList<Integer>();
+        saveArrayLat = new ArrayList<Integer>();
         geoPointsArray = new ArrayList<GeoPoint>();
         locationPointsArray = new ArrayList<Location>();
   
@@ -68,7 +78,7 @@ public class ShowMap extends MapActivity {
         mLatLng = (TextView) findViewById(R.id.latlng);
         mDistance = (TextView) findViewById(R.id.distance);
         mElevation = (TextView) findViewById(R.id.elevation);
-        mTimer = (TextView) findViewById(R.id.speed);
+        mSpeed = (TextView) findViewById(R.id.speed);
         
         // Get the Map View and configure
         mapView = (MapView) findViewById(R.id.mapview);
@@ -96,7 +106,7 @@ public class ShowMap extends MapActivity {
 	        			mElevation.setText((String) msg.obj);
 	        			break;
 	        		case UPDATE_SPEED:
-	        			mTimer.setText((String) msg.obj);
+	        			mSpeed.setText((String) msg.obj);
 	        			break;
         		}
         	}
@@ -153,11 +163,11 @@ public class ShowMap extends MapActivity {
     	myLocationOverlay.enableMyLocation();
     	myLocationOverlay.enableCompass();
     	
-    	// Set UI texts to unknown if no current information is available
+    	// Set UI texts to "unknown" if no current information is available
     	mLatLng.setText(R.string.unknown);
     	mDistance.setText(R.string.unknown);
     	mElevation.setText(R.string.unknown);
-    	mTimer.setText(R.string.unknown);
+    	mSpeed.setText(R.string.unknown);
     	
     	// Request Update from Providers
        	gpsLocation = requestUpdatesFromProvider(LocationManager.GPS_PROVIDER, 
@@ -165,20 +175,18 @@ public class ShowMap extends MapActivity {
     	networkLocation = requestUpdatesFromProvider(LocationManager.NETWORK_PROVIDER, 
     			R.string.not_support_network);
     	
+    	// Attempts to get the best possible location by comparing the accuracy of GPS Provider
+    	// and Network Provider
     	if (gpsLocation != null && networkLocation != null) {
     		getBetterLocation(gpsLocation, networkLocation);
     		if (getBetterLocation(gpsLocation, networkLocation) == gpsLocation) {
-    			locationPointsArray.add(gpsLocation);
     			updateUILocation(gpsLocation);
     		} else if (getBetterLocation(gpsLocation, networkLocation) == networkLocation){
-    			locationPointsArray.add(networkLocation);
     			updateUILocation(networkLocation);
     		}
     	} else if (gpsLocation != null) {
-    		locationPointsArray.add(gpsLocation);
     		updateUILocation(gpsLocation);
     	} else if (networkLocation != null) {
-    		locationPointsArray.add(networkLocation);
     		updateUILocation(networkLocation);
     	}
     }
@@ -194,17 +202,16 @@ public class ShowMap extends MapActivity {
     protected Dialog onCreateDialog() {
     	AlertDialog.Builder builder = new AlertDialog.Builder(this);
     	
-	    		builder.setTitle(R.string.question);
-		    	builder.setPositiveButton(R.string.saver, new DialogInterface.OnClickListener() {
-					
+	    		builder.setTitle(R.string.question)
+	    		
+		    			.setPositiveButton(R.string.saver, new DialogInterface.OnClickListener() {
+		    		
 					public void onClick(DialogInterface dialog, int which) {
-						Toast.makeText(getApplicationContext(),
-                                "I'm sorry I can't do that yet.", Toast.LENGTH_SHORT)
-                                .show();
+						onSaveDialog().show();
 					}
-				});
+				})
 		    	
-		    	builder.setNeutralButton(R.string.resume, new DialogInterface.OnClickListener() {
+		    			.setNeutralButton(R.string.resume, new DialogInterface.OnClickListener() {
 					
 					public void onClick(DialogInterface dialog, int which) {
 						Toast.makeText(getApplicationContext(),
@@ -212,9 +219,9 @@ public class ShowMap extends MapActivity {
                                 .show();
 						dialog.dismiss();
 					}
-				});
+				})
 		    	
-		    	builder.setNegativeButton(R.string.quit, new DialogInterface.OnClickListener() {
+		    			.setNegativeButton(R.string.quit, new DialogInterface.OnClickListener() {
 					
 					public void onClick(DialogInterface dialog, int which) {
 						Toast.makeText(getApplicationContext(),
@@ -224,6 +231,46 @@ public class ShowMap extends MapActivity {
 					}
 				});
 
+    	return builder.create();
+    }
+    
+    /**
+     * Method, when Save is selected from previous dialog to save information from this activity
+     * and pass it to a save activity called SaveTrail. Presents user with a new dialog box
+     * where the user name's the trail and saves the user defined name and the location points array.
+     * @return
+     */
+    protected Dialog onSaveDialog() {
+    	AlertDialog.Builder builder = new AlertDialog.Builder(this);
+    	
+    	LayoutInflater inflater = this.getLayoutInflater();
+    	
+    	//userInput = (EditText) findViewById(R.id.trailname);
+    	//final EditText finalInput = new EditText(this);
+    	
+    	builder.setView(inflater.inflate(R.layout.saver, null))
+    			
+    			.setPositiveButton(R.string.saver, new DialogInterface.OnClickListener() {
+					
+					public void onClick(DialogInterface dialog, int which) {
+						// Place the Lat & Long Arrays into the Bundle
+						extras.putIntegerArrayList("latitude", saveArrayLat);
+						extras.putIntegerArrayList("longitude", saveArrayLng);
+						
+						Intent saveTrail = new Intent(ShowMap.this, SaveTrail.class);
+						// Get the Bundle and pass all data to the new activity
+						saveTrail.putExtras(extras);
+						startActivity(saveTrail);
+					}
+				})
+				
+				.setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
+					
+					public void onClick(DialogInterface dialog, int which) {
+						dialog.dismiss();
+					}
+				});
+    	
     	return builder.create();
     }
     
@@ -289,7 +336,13 @@ public class ShowMap extends MapActivity {
     	public void onLocationChanged(Location location) {
     		int lat = (int) (location.getLatitude() * 1E6);
     		int lng = (int) (location.getLongitude() * 1E6);
+
     		GeoPoint point = new GeoPoint(lat, lng);
+    		
+    		// Stores latitude and longitude as Integers to Array Lists that are used for saving
+    		// purposes
+    		saveArrayLat.add(lat);
+    		saveArrayLng.add(lng);
     		
     		locationPointsArray.add(location);
 
@@ -307,12 +360,8 @@ public class ShowMap extends MapActivity {
     			mapView.getOverlays().add(myOverlay);
     		}
     		
-    		// Update the UI with the new location information
+    		// Update the UI Texts with the new location information
     		updateUILocation(location);
-    		
-    		// This toast is for debug purposes only, comment out or delete when final app deploys
-    		Toast.makeText(getApplicationContext(), "The Location Points Array is this big: " +
-        			locationPointsArray.size(), Toast.LENGTH_SHORT).show();
     	}
     	
     	public void onProviderDisabled(String provider) {}
