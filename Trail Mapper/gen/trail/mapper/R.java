@@ -54,36 +54,36 @@ public final class R {
         /**  main string 
          */
         public static final int app_name=0x7f050000;
-        public static final int cancel=0x7f050007;
-        public static final int distance=0x7f050012;
-        public static final int elevation=0x7f050014;
+        public static final int cancel=0x7f050008;
+        public static final int distance=0x7f050013;
+        public static final int elevation=0x7f050015;
         /**  gps/location provider strings 
          */
-        public static final int enable_gps=0x7f050002;
-        public static final int enable_gps_dialog=0x7f050003;
-        public static final int hello_world=0x7f050016;
+        public static final int enable_gps=0x7f050003;
+        public static final int enable_gps_dialog=0x7f050004;
+        public static final int hello_world=0x7f050017;
         /**  display strings 
          */
-        public static final int latlng=0x7f050011;
-        public static final int loader=0x7f05000d;
-        public static final int mapper=0x7f050009;
-        public static final int menu_settings=0x7f050008;
-        public static final int nametrail=0x7f05000b;
-        public static final int not_support_gps=0x7f050004;
-        public static final int not_support_network=0x7f050005;
+        public static final int latlng=0x7f050012;
+        public static final int loader=0x7f05000e;
+        public static final int mapper=0x7f05000a;
+        public static final int menu_settings=0x7f050009;
+        public static final int nametrail=0x7f05000c;
+        public static final int not_support_gps=0x7f050005;
+        public static final int not_support_network=0x7f050006;
         /**  menu/button strings 
          */
-        public static final int question=0x7f050006;
-        public static final int quit=0x7f05000e;
-        public static final int resume=0x7f050010;
-        public static final int saver=0x7f05000a;
-        public static final int speed=0x7f050013;
-        public static final int stop=0x7f05000f;
-        public static final int title_activity_save_trail=0x7f050017;
+        public static final int question=0x7f050007;
+        public static final int quit=0x7f05000f;
+        public static final int resume=0x7f050011;
+        public static final int saver=0x7f05000b;
+        public static final int speed=0x7f050014;
+        public static final int stop=0x7f050010;
+        public static final int title_activity_save_trail=0x7f050002;
         /**  activites strings 
          */
         public static final int title_activity_show_map=0x7f050001;
-        public static final int trailname=0x7f05000c;
-        public static final int unknown=0x7f050015;
+        public static final int trailname=0x7f05000d;
+        public static final int unknown=0x7f050016;
     }
 }
